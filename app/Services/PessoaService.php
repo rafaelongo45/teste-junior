@@ -6,6 +6,7 @@ namespace App\Services;
 use App\Repositories\PessoaRepository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use App\Entities\Pessoa;
 
 class PessoaService implements PessoaServiceInterface
 {
@@ -13,10 +14,11 @@ class PessoaService implements PessoaServiceInterface
      * @var PessoaRepository
      */
     private $pessoaRepo;
-
+    private $parametersArray;
     public function __construct(PessoaRepository $pessoaRepository)
     {
         $this->pessoaRepo = $pessoaRepository;
+        $this->parametersArray = ['id', 'nome', 'sobrenome','celular', 'cpf', 'cep', 'logradouro'];
     }
 
     /**
@@ -24,7 +26,12 @@ class PessoaService implements PessoaServiceInterface
      */
     public function find(int $id): ?Model
     {
-        return $this->pessoaRepo->find($id);
+        return $this->pessoaRepo->find($id, $this->parametersArray);
+    }
+
+    public function findByCPF(string $cpf): ?Model
+    {
+        return Pessoa::where('cpf', $cpf)->first();
     }
 
     /**
@@ -32,7 +39,7 @@ class PessoaService implements PessoaServiceInterface
      */
     public function all(): ?Collection
     {
-        // TODO: Implement all() method.
+        return $this->pessoaRepo->all($this->parametersArray);
     }
 
     /**
@@ -40,7 +47,6 @@ class PessoaService implements PessoaServiceInterface
      */
     public function create(array $data): ?Model
     {
-        $var = 10 / 0;
         return $this->pessoaRepo->create($data);
     }
 
@@ -49,7 +55,7 @@ class PessoaService implements PessoaServiceInterface
      */
     public function delete(int $id): ?bool
     {
-        // TODO: Implement delete() method.
+        return $this->pessoaRepo->delete($id);
     }
 
     /**
@@ -57,6 +63,12 @@ class PessoaService implements PessoaServiceInterface
      */
     public function update(array $data, int $id): ?Model
     {
-        // TODO: Implement update() method.
+        $pessoa = $this->find($id);
+        $keys = array_keys($data);
+        foreach($keys as $key){
+            $pessoa->$key = $data[$key];
+            $pessoa->save();
+        }
+        return $pessoa;
     }
 }
