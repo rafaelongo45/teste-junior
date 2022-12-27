@@ -7,7 +7,9 @@ use App\Http\Requests\PessoaStoreRequest;
 use App\Http\Requests\PessoaUpdateRequest;
 use App\Services\PessoaServiceInterface;
 use App\Services\PessoaService;
+use GuzzleHttp\Client;
 use Illuminate\Http\Request;
+
 use Symfony\Component\HttpFoundation\Response;
 
 class PessoaController extends Controller
@@ -26,7 +28,7 @@ class PessoaController extends Controller
         $this->validateArray = [
             'nome' => 'required',
             'sobrenome' => 'required',
-            'cep' => 'required',
+            'cep' => 'required|size:8|regex:/^[0-9]{8}$/',
             'cpf' => 'required|size:11|regex:/^[0-9]{11}$/',
             'logradouro' => 'required',
             'celular' => 'required'
@@ -51,11 +53,20 @@ class PessoaController extends Controller
     public function store(PessoaStoreRequest $request)
     {
         $request->validate($this->validateArray);
+        $cep = $request['cep'];
+        $client = new Client();
+        $response = $client->get("https://viacep.com.br/ws/{$cep}/json/");
+        $body = $response->getBody()->getContents();
+        $hasError = strpos($body, 'erro');
+
+        if($hasError){
+            return response()->json("Invalid CEP. Please use a CEP that exists.", Response::HTTP_BAD_REQUEST); 
+        }
 
         $pessoaDb = $this->pessoaService->findByCPF($request['cpf']);
-    
+
         if ($pessoaDb) {
-            return response()->json("User with this CPF is already registered", Response::HTTP_CONFLICT);
+            return response()->json("Person with this CPF is already registered", Response::HTTP_CONFLICT);
         }
 
         $pessoa = $this->pessoaService->create($request->all());
@@ -86,6 +97,15 @@ class PessoaController extends Controller
     {
         //
         $request->validate($this->validateArray);
+        $cep = $request['cep'];
+        $client = new Client();
+        $response = $client->get("https://viacep.com.br/ws/{$cep}/json/");
+        $body = $response->getBody()->getContents();
+        $hasError = strpos($body, 'erro');
+
+        if($hasError){
+            return response()->json("Invalid CEP. Please use a CEP that exists.", Response::HTTP_BAD_REQUEST); 
+        }
 
         $pessoa = $this->pessoaService->find($id);
 
